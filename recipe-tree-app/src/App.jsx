@@ -3,6 +3,7 @@ import { ReactFlow, Controls, Background, applyNodeChanges, applyEdgeChanges } f
 import '@xyflow/react/dist/style.css';
 import { UploadCloud, ArrowLeft, Network } from 'lucide-react';
 import CustomNode from './CustomNode';
+import SidePanel from './SidePanel';
 import { parseYamlToGraph, getLayoutedElements } from './utils';
 
 const nodeTypes = {
@@ -14,6 +15,8 @@ function App() {
   const [edges, setEdges] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [recipeMap, setRecipeMap] = useState(null);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -27,7 +30,7 @@ function App() {
 
   const loadGraph = (yamlString) => {
     try {
-      const { initialNodes, initialEdges } = parseYamlToGraph(yamlString);
+      const { initialNodes, initialEdges, recipeMap: parsedMap } = parseYamlToGraph(yamlString);
       const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
         initialNodes,
         initialEdges
@@ -35,6 +38,7 @@ function App() {
 
       setNodes(layoutedNodes);
       setEdges(layoutedEdges);
+      setRecipeMap(parsedMap);
       setIsLoaded(true);
     } catch (error) {
       alert("YAMLの解析に失敗しました。正しい形式ですか？\n" + error.message);
@@ -112,6 +116,8 @@ function App() {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+        onPaneClick={() => setSelectedNodeId(null)}
         nodeTypes={nodeTypes}
         fitView
         minZoom={0.1}
@@ -120,6 +126,12 @@ function App() {
         <Background gap={24} size={2} color="rgba(255,255,255,0.05)" />
         <Controls showInteractive={false} />
       </ReactFlow>
+      
+      <SidePanel 
+        selectedItem={selectedNodeId} 
+        recipeMap={recipeMap} 
+        onClose={() => setSelectedNodeId(null)} 
+      />
     </div>
   );
 }

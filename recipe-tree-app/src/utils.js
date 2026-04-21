@@ -11,6 +11,8 @@ export const parseYamlToGraph = (yamlString) => {
     const { recipes } = data;
     const initialNodes = [];
     const initialEdges = [];
+    const recipeMap = new Map();
+    recipes.forEach(r => recipeMap.set(r.name, r));
 
     // Map to keep track of added nodes to prevent duplicates
     const addedNodes = new Set();
@@ -68,7 +70,7 @@ export const parseYamlToGraph = (yamlString) => {
       }
     });
 
-    return { initialNodes, initialEdges };
+    return { initialNodes, initialEdges, recipeMap };
   } catch (err) {
     console.error("Error parsing YAML:", err);
     throw err;
@@ -113,4 +115,27 @@ export const getLayoutedElements = (nodes, edges, direction = 'BT') => {
   });
 
   return { nodes: layoutedNodes, edges };
+};
+
+export const calculateTotalMaterials = (itemName, recipeMap, amount = 1) => {
+  if (!recipeMap) return {};
+  
+  const totals = {};
+  
+  const calc = (name, qty) => {
+    const recipeObj = recipeMap.get(name);
+    // If there is no recipe list, it's a base material
+    if (!recipeObj || !recipeObj.recipe) {
+      totals[name] = (totals[name] || 0) + qty;
+      return;
+    }
+    
+    // Otherwise calculate ingredients
+    recipeObj.recipe.forEach(ingredient => {
+      calc(ingredient.item, ingredient.required * qty);
+    });
+  };
+  
+  calc(itemName, amount);
+  return totals;
 };
