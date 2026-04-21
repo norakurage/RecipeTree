@@ -77,6 +77,28 @@ body {
   background: rgba(30, 58, 138, 0.5);
 }
 
+.custom-node.completed-node {
+  opacity: 0.5;
+  filter: grayscale(80%);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.completed-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(16, 185, 129, 0.2);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  pointer-events: none;
+}
+
 .node-label {
   font-size: 1.1rem;
   font-weight: 600;
@@ -118,6 +140,20 @@ body {
   fill: #e2e8f0; /* 文字色を明るく */
   font-size: 13px;
   font-weight: 700;
+}
+
+.react-flow__edge.faded-edge .react-flow__edge-path {
+  stroke: rgba(148, 163, 184, 0.3) !important;
+  filter: none;
+  opacity: 0.5;
+}
+
+.react-flow__edge.faded-edge .react-flow__edge-text {
+  fill: rgba(148, 163, 184, 0.5);
+}
+
+.react-flow__edge.faded-edge .react-flow__edge-textbg {
+  fill: rgba(30, 41, 59, 0.3) !important;
 }
 
 /* Controls override for dark theme */

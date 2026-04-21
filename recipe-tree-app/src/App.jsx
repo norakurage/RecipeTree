@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { ReactFlow, Controls, Background, applyNodeChanges, applyEdgeChanges } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { UploadCloud, ArrowLeft, Network } from 'lucide-react';
@@ -27,6 +27,93 @@ function App() {
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     []
   );
+
+  const onNodeContextMenu = useCallback(
+    (event, node) => {
+      event.preventDefault();
+      setNodes((nds) =>
+        nds.map((n) => {
+          if (n.id === node.id) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                isCompleted: !n.data.isCompleted,
+              },
+            };
+          }
+          return n;
+        })
+      );
+    },
+    [setNodes]
+  );
+
+  const completedNodeIds = new Set(nodes.filter(n => n.data?.isCompleted).map(n => n.id));
+
+  // Compute active nodes and edges for fading
+  const { displayNodes, displayEdges } = useMemo(() => {
+    // Parent -> Ingredients (Target -> Sources)
+    const parentToIngredients = {};
+    const edgeMap = {};
+
+    edges.forEach(e => {
+      if (!parentToIngredients[e.target]) parentToIngredients[e.target] = [];
+      parentToIngredients[e.target].push(e.source);
+      edgeMap[`${e.target}->${e.source}`] = e.id;
+    });
+
+    const activeNodes = new Set();
+    const activeEdges = new Set();
+
+    // Find roots (nodes with no out-edges)
+    const outEdges = new Map();
+    edges.forEach(e => {
+      outEdges.set(e.source, (outEdges.get(e.source) || 0) + 1);
+    });
+    const roots = nodes.filter(n => !outEdges.has(n.id)).map(n => n.id);
+
+    const propagateDemand = (nodeId) => {
+      // If it's explicitly completed, it doesn't demand ingredients
+      if (completedNodeIds.has(nodeId)) {
+        return;
+      }
+      
+      activeNodes.add(nodeId);
+
+      const ingredients = parentToIngredients[nodeId] || [];
+      ingredients.forEach(ingId => {
+        const eId = edgeMap[`${nodeId}->${ingId}`];
+        activeEdges.add(eId);
+        if (!activeNodes.has(ingId)) {
+          propagateDemand(ingId);
+        }
+      });
+    };
+
+    roots.forEach(root => propagateDemand(root));
+
+    const dNodes = nodes.map(n => {
+      const isExplicit = completedNodeIds.has(n.id);
+      const isActive = activeNodes.has(n.id);
+      const isFaded = isExplicit || !isActive;
+      
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          isFaded,
+        }
+      };
+    });
+
+    const dEdges = edges.map(e => ({
+      ...e,
+      className: activeEdges.has(e.id) ? '' : 'faded-edge',
+    }));
+
+    return { displayNodes: dNodes, displayEdges: dEdges };
+  }, [nodes, edges, completedNodeIds]);
 
   const loadGraph = (yamlString) => {
     try {
@@ -112,11 +199,12 @@ function App() {
         </button>
       </div>
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={displayNodes}
+        edges={displayEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+        onNodeContextMenu={onNodeContextMenu}
         onPaneClick={() => setSelectedNodeId(null)}
         nodeTypes={nodeTypes}
         fitView
@@ -130,6 +218,7 @@ function App() {
       <SidePanel 
         selectedItem={selectedNodeId} 
         recipeMap={recipeMap} 
+        completedItems={completedNodeIds}
         onClose={() => setSelectedNodeId(null)} 
       />
     </div>

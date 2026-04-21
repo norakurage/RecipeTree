@@ -1,12 +1,14 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { Hammer, Package } from 'lucide-react';
+import { Hammer, Package, Check } from 'lucide-react';
 
 const CustomNode = ({ data, isConnectable }) => {
   const isResult = data.isResult;
+  const isCompleted = data.isCompleted;
+  const isFaded = data.isFaded;
 
   return (
-    <div className={`custom-node ${isResult ? 'result-node' : ''}`}>
+    <div className={`custom-node ${isResult ? 'result-node' : ''} ${isFaded ? 'completed-node' : ''}`}>
       {/* Target handle: where inputs come in (bottom for BT layout) */}
       <Handle
         type="target"
@@ -23,6 +25,12 @@ const CustomNode = ({ data, isConnectable }) => {
         <div className="crafting-station">
           <Hammer size={12} />
           <span>{data.crafting}</span>
+        </div>
+      )}
+
+      {isCompleted && (
+        <div className="completed-overlay">
+          <Check size={32} color="#10b981" />
         </div>
       )}
       

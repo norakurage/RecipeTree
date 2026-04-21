@@ -117,12 +117,16 @@ export const getLayoutedElements = (nodes, edges, direction = 'BT') => {
   return { nodes: layoutedNodes, edges };
 };
 
-export const calculateTotalMaterials = (itemName, recipeMap, amount = 1) => {
+export const calculateTotalMaterials = (itemName, recipeMap, amount = 1, completedItems = new Set()) => {
   if (!recipeMap) return {};
   
   const totals = {};
   
   const calc = (name, qty) => {
+    if (completedItems.has(name)) {
+      return;
+    }
+
     const recipeObj = recipeMap.get(name);
     // If there is no recipe list, it's a base material
     if (!recipeObj || !recipeObj.recipe) {
