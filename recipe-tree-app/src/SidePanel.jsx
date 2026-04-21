@@ -51,22 +51,7 @@ const SidePanel = ({ selectedItem, recipeMap, completedItems, onClose }) => {
                     )}
                   </div>
 
-                  {recipeObj && recipeObj.recipe && recipeObj.recipe.length > 0 && (
-                    <div className="section">
-                      <h3>
-                        <PackageOpen size={18} /> 
-                        直接必要となる素材
-                      </h3>
-                      <ul className="materials-list">
-                        {recipeObj.recipe.map(ingredient => (
-                          <li key={ingredient.item}>
-                            <span className="material-name">{ingredient.item}</span>
-                            <span className="material-qty">{ingredient.required}個</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+
                 </>
               );
             })()}

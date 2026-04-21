@@ -138,8 +138,8 @@ body {
 
 .react-flow__edge-text {
   fill: #e2e8f0; /* 文字色を明るく */
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
 }
 
 .react-flow__edge.faded-edge .react-flow__edge-path {
