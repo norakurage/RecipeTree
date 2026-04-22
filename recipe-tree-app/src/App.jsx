@@ -31,6 +31,26 @@ function App() {
   const [activeRootItem, setActiveRootItem] = useState(null);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
 
+  // 検索候補を絞り込む処理（最大表示件数を100件に制限し、入力がある時のみ表示して動作を軽量化）
+  const filteredItems = useMemo(() => {
+    if (!searchInput) return []; // 未入力時は候補を表示しない
+    const lowerInput = searchInput.toLowerCase();
+    
+    const matched = [];
+    // availableItemsから部分一致するものを最大100件抽出
+    for (let i = 0; i < availableItems.length; i++) {
+      const item = availableItems[i];
+      if (item == null) continue; // undefinedやnullをスキップ
+      
+      // 文字列キャストを挟んでtoLowerCaseエラーを防ぐ（JSON側に数値やnullが混入していることへの対策）
+      if (String(item).toLowerCase().includes(lowerInput)) {
+        matched.push(item);
+        if (matched.length >= 100) break;
+      }
+    }
+    return matched;
+  }, [searchInput, availableItems]);
+
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
     []
@@ -64,9 +84,8 @@ function App() {
 
   const completedNodeIds = new Set(nodes.filter(n => n.data?.isCompleted).map(n => n.id));
 
-  // Compute active nodes and edges for fading
-  const { displayNodes, displayEdges } = useMemo(() => {
-    // Parent -> Ingredients (Target -> Sources)
+  // ① エッジと完了状態からアクティブなノードとエッジを計算（ノードのドラッグ等による再計算を防ぐ）
+  const { activeNodes, activeEdges } = useMemo(() => {
     const parentToIngredients = {};
     const edgeMap = {};
 
@@ -76,14 +95,15 @@ function App() {
       edgeMap[`${e.target}->${e.source}`] = e.id;
     });
 
-    const activeNodes = new Set();
-    const activeEdges = new Set();
+    const activeNodesSet = new Set();
+    const activeEdgesSet = new Set();
 
     // Find roots (nodes with no out-edges)
     const outEdges = new Map();
     edges.forEach(e => {
       outEdges.set(e.source, (outEdges.get(e.source) || 0) + 1);
     });
+    // 動的に変化しない nodes.length を依存配列にすることで、ドラッグ中の計算をスキップ
     const roots = nodes.filter(n => !outEdges.has(n.id)).map(n => n.id);
 
     const propagateDemand = (nodeId) => {
@@ -92,13 +112,13 @@ function App() {
         return;
       }
       
-      activeNodes.add(nodeId);
+      activeNodesSet.add(nodeId);
 
       const ingredients = parentToIngredients[nodeId] || [];
       ingredients.forEach(ingId => {
         const eId = edgeMap[`${nodeId}->${ingId}`];
-        activeEdges.add(eId);
-        if (!activeNodes.has(ingId)) {
+        activeEdgesSet.add(eId);
+        if (!activeNodesSet.has(ingId)) {
           propagateDemand(ingId);
         }
       });
@@ -106,10 +126,17 @@ function App() {
 
     roots.forEach(root => propagateDemand(root));
 
-    const dNodes = nodes.map(n => {
+    return { activeNodes: activeNodesSet, activeEdges: activeEdgesSet };
+  }, [edges, completedNodeIds, nodes.length]);
+
+  // ② 表示用ノードの生成。オブジェクトの参照を極力変えずにReact Flowの再レンダリング負荷を下げる（軽量化）
+  const displayNodes = useMemo(() => {
+    return nodes.map(n => {
       const isExplicit = completedNodeIds.has(n.id);
       const isActive = activeNodes.has(n.id);
       const isFaded = isExplicit || !isActive;
+      
+      if (n.data?.isFaded === isFaded) return n; // 状態が変わらなければ既存の参照を返す
       
       return {
         ...n,
@@ -119,14 +146,21 @@ function App() {
         }
       };
     });
+  }, [nodes, activeNodes, completedNodeIds]);
 
-    const dEdges = edges.map(e => ({
-      ...e,
-      className: activeEdges.has(e.id) ? '' : 'faded-edge',
-    }));
-
-    return { displayNodes: dNodes, displayEdges: dEdges };
-  }, [nodes, edges, completedNodeIds]);
+  // ③ 表示用エッジの生成。同様に参照を維持する
+  const displayEdges = useMemo(() => {
+    return edges.map(e => {
+      const className = activeEdges.has(e.id) ? '' : 'faded-edge';
+      
+      if (e.className === className) return e; // 状態が変わらなければ既存の参照を返す
+      
+      return {
+        ...e,
+        className,
+      };
+    });
+  }, [edges, activeEdges]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -168,7 +202,7 @@ function App() {
             className="search-input"
           />
           <datalist id="item-list">
-            {availableItems.map(item => <option key={item} value={item} />)}
+            {filteredItems.map(item => <option key={item} value={item} />)}
           </datalist>
           <button type="submit" className="btn search-btn">ツリーを表示</button>
         </form>
