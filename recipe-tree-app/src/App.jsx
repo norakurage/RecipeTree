@@ -5,7 +5,7 @@ import { ArrowLeft, Network } from 'lucide-react';
 import CustomNode from './CustomNode';
 import SidePanel from './SidePanel';
 import { parseDataToStore, buildSubGraph, getLayoutedElements } from './utils';
-import recipesData from '../recipes.json';
+import recipesData from './recipes.json';
 
 const nodeTypes = {
   customNode: CustomNode,
