@@ -16,7 +16,8 @@ export const parseDataToStore = (data) => {
       
       if (r.inputs) {
         r.inputs.forEach(ingredient => {
-          availableItems.add(ingredient.item);
+          const itemName = Array.isArray(ingredient.item) ? ingredient.item.join(' / ') : ingredient.item;
+          availableItems.add(itemName);
         });
       }
     });
@@ -66,7 +67,7 @@ export const buildSubGraph = (rootItemName, recipeMap) => {
     
     if (recipe && recipe.inputs) {
       recipe.inputs.forEach(ingredient => {
-        const reqName = ingredient.item;
+        const reqName = Array.isArray(ingredient.item) ? ingredient.item.join(' / ') : ingredient.item;
         
         // Add to queue for exploration
         queue.push(reqName);
@@ -145,7 +146,8 @@ export const calculateTotalMaterials = (itemName, recipeMap, amount = 1, complet
     
     // Otherwise calculate ingredients
     recipeObj.inputs.forEach(ingredient => {
-      calc(ingredient.item, ingredient.count * qty);
+      const reqName = Array.isArray(ingredient.item) ? ingredient.item.join(' / ') : ingredient.item;
+      calc(reqName, ingredient.count * qty);
     });
   };
   
