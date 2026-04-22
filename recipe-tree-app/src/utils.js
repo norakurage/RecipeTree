@@ -79,6 +79,10 @@ export const buildSubGraph = (rootItemName, recipeMap) => {
           target: currentItem,
           label: `${ingredient.count}個`,
           animated: true,
+          labelStyle: { fontSize: 12, fontWeight: 800, fill: '#e2e8f0' },
+          labelBgStyle: { fill: '#1e293b' },
+          labelBgPadding: [12, 6],
+          labelBgBorderRadius: 4,
         });
       });
     }
