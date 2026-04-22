@@ -1,0 +1,45 @@
+name: Deploy static content to Pages
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './recipe-tree-app/package-lock.json' # キャッシュの場所を指定
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./recipe-tree-app # ← ここでフォルダを指定！
+      - name: Build
+        run: npm run build
+        working-directory: ./recipe-tree-app # ← ここでもフォルダを指定！
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './recipe-tree-app/dist' # ← 出来上がるファイルの場所を指定！
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
