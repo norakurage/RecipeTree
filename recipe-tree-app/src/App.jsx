@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { ReactFlow, Controls, Background, applyNodeChanges, applyEdgeChanges } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { UploadCloud, ArrowLeft, Network } from 'lucide-react';
+import { ArrowLeft, Network } from 'lucide-react';
 import CustomNode from './CustomNode';
 import SidePanel from './SidePanel';
 import { parseDataToStore, buildSubGraph, getLayoutedElements } from './utils';
+import recipesData from '../recipes.json';
 
 const nodeTypes = {
   customNode: CustomNode,
@@ -13,10 +14,18 @@ const nodeTypes = {
 function App() {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [recipeMap, setRecipeMap] = useState(null);
   const [availableItems, setAvailableItems] = useState([]);
+
+  useEffect(() => {
+    try {
+      const { recipeMap: parsedMap, availableItems: parsedItems } = parseDataToStore(recipesData);
+      setRecipeMap(parsedMap);
+      setAvailableItems(parsedItems);
+    } catch (error) {
+      console.error("Failed to parse static recipes data:", error);
+    }
+  }, []);
   
   const [searchInput, setSearchInput] = useState('');
   const [activeRootItem, setActiveRootItem] = useState(null);
@@ -119,17 +128,6 @@ function App() {
     return { displayNodes: dNodes, displayEdges: dEdges };
   }, [nodes, edges, completedNodeIds]);
 
-  const loadGraph = (jsonString) => {
-    try {
-      const { recipeMap: parsedMap, availableItems: parsedItems } = parseDataToStore(jsonString);
-      setRecipeMap(parsedMap);
-      setAvailableItems(parsedItems);
-      setIsLoaded(true);
-    } catch (error) {
-      alert("JSONの解析に失敗しました。正しい形式ですか？\n" + error.message);
-    }
-  };
-
   const handleSearch = (e) => {
     e.preventDefault();
     if (!searchInput || !availableItems.includes(searchInput)) {
@@ -154,63 +152,6 @@ function App() {
     }
   };
 
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      readFile(file);
-    }
-  };
-
-  const handleDrop = (event) => {
-    event.preventDefault();
-    setIsDragging(false);
-    const file = event.dataTransfer.files[0];
-    if (file) {
-      readFile(file);
-    }
-  };
-
-  const readFile = (file) => {
-    const reader = new FileReader();
-    reader.onload = (e) => loadGraph(e.target.result);
-    reader.readAsText(file);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  if (!isLoaded) {
-    return (
-      <div className="dropzone-container">
-        <label 
-          className={`glass-panel dropzone ${isDragging ? 'dragging' : ''}`}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-        >
-          <div className="icon-container">
-            <UploadCloud size={64} />
-          </div>
-          <h2>recipes.json をアップロード</h2>
-          <p>ドラッグ＆ドロップ、またはクリックしてファイルを選択</p>
-          <input 
-            type="file" 
-            accept=".json" 
-            onChange={handleFileUpload} 
-            style={{ display: 'none' }} 
-          />
-        </label>
-      </div>
-    );
-  }
-
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       <div className="glass-panel app-header" style={{ display: 'flex', width: 'calc(100% - 48px)' }}>
@@ -233,13 +174,12 @@ function App() {
         </form>
 
         <button className="btn" onClick={() => { 
-          setIsLoaded(false); 
           setActiveRootItem(null);
           setSearchInput('');
           setNodes([]);
           setEdges([]);
         }}>
-          <ArrowLeft size={16} /> 別のファイル
+          <ArrowLeft size={16} /> クリア
         </button>
       </div>
 

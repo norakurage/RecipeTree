@@ -1,8 +1,8 @@
 import dagre from 'dagre';
 
-export const parseDataToStore = (jsonString) => {
+export const parseDataToStore = (data) => {
   try {
-    const recipes = JSON.parse(jsonString);
+    const recipes = typeof data === 'string' ? JSON.parse(data) : data;
     if (!Array.isArray(recipes)) {
       throw new Error("Invalid format: Expected an array of recipes.");
     }
