@@ -1,80 +1,89 @@
 import dagre from 'dagre';
-import yaml from 'js-yaml';
 
-export const parseYamlToGraph = (yamlString) => {
+export const parseDataToStore = (jsonString) => {
   try {
-    const data = yaml.load(yamlString);
-    if (!data || !data.recipes) {
-      throw new Error("Invalid format: 'recipes' key not found.");
+    const recipes = JSON.parse(jsonString);
+    if (!Array.isArray(recipes)) {
+      throw new Error("Invalid format: Expected an array of recipes.");
     }
 
-    const { recipes } = data;
-    const initialNodes = [];
-    const initialEdges = [];
     const recipeMap = new Map();
-    recipes.forEach(r => recipeMap.set(r.name, r));
-
-    // Map to keep track of added nodes to prevent duplicates
-    const addedNodes = new Set();
+    const availableItems = new Set();
     
-    // We are reading a recipe structure.
-    // Each recipe has a "name" (the crafted item), "crafting" (the station), and "recipe" (list of ingredients).
-    
-    // We want the arrows to point from Requirement -> Result (so, from ingredients to the crafted item)
-    // We will create nodes for all items.
-
     recipes.forEach(r => {
-      const resultName = r.name;
+      recipeMap.set(r.name, r);
+      availableItems.add(r.name);
       
-      if (!addedNodes.has(resultName)) {
-        initialNodes.push({
-          id: resultName,
-          position: { x: 0, y: 0 },
-          data: { label: resultName, isResult: true, crafting: r.crafting },
-          type: 'customNode', // We will define a custom node type later
-        });
-        addedNodes.add(resultName);
-      } else {
-        // If it was already added as an ingredient, let's update it to show it's a result too
-        const node = initialNodes.find(n => n.id === resultName);
-        if (node) {
-          node.data.isResult = true;
-          node.data.crafting = r.crafting;
-        }
-      }
-
-      // Ingredients
-      if (r.recipe) {
-        r.recipe.forEach(ingredient => {
-          const reqName = ingredient.item;
-          
-          if (!addedNodes.has(reqName)) {
-            initialNodes.push({
-              id: reqName,
-              position: { x: 0, y: 0 },
-              data: { label: reqName, isResult: false },
-              type: 'customNode',
-            });
-            addedNodes.add(reqName);
-          }
-
-          // Create edge
-          initialEdges.push({
-            id: `e-${reqName}-${resultName}`,
-            source: reqName,
-            target: resultName,
-            label: `${ingredient.required}個`,
-            animated: true,
-          });
+      if (r.inputs) {
+        r.inputs.forEach(ingredient => {
+          availableItems.add(ingredient.item);
         });
       }
     });
 
-    return { initialNodes, initialEdges, recipeMap };
+    return { 
+      recipeMap, 
+      availableItems: Array.from(availableItems).sort() 
+    };
   } catch (err) {
-    console.error("Error parsing YAML:", err);
+    console.error("Error parsing JSON:", err);
     throw err;
   }
+};
+
+export const buildSubGraph = (rootItemName, recipeMap) => {
+  const initialNodes = [];
+  const initialEdges = [];
+  const addedNodes = new Set();
+  
+  // Use a queue to trace dependencies (BFS)
+  const queue = [rootItemName];
+  
+  while (queue.length > 0) {
+    const currentItem = queue.shift();
+    
+    // Don't process duplicates
+    if (addedNodes.has(currentItem)) {
+      continue;
+    }
+    
+    addedNodes.add(currentItem);
+    
+    const recipe = recipeMap.get(currentItem);
+    const craftingLabel = recipe && Array.isArray(recipe.craft_station) 
+        ? recipe.craft_station.join(', ') 
+        : (recipe?.craft_station || '');
+    
+    // Determine if it tells us how to craft it
+    const isResult = !!recipe;
+
+    initialNodes.push({
+      id: currentItem,
+      position: { x: 0, y: 0 },
+      data: { label: currentItem, isResult, crafting: craftingLabel },
+      type: 'customNode',
+    });
+    
+    if (recipe && recipe.inputs) {
+      recipe.inputs.forEach(ingredient => {
+        const reqName = ingredient.item;
+        
+        // Add to queue for exploration
+        queue.push(reqName);
+        
+        // Create edge from ingredient -> currentItem
+        initialEdges.push({
+          id: `e-${reqName}-${currentItem}`,
+          source: reqName,
+          target: currentItem,
+          label: `${ingredient.count}個`,
+          animated: true,
+        });
+      });
+    }
+  }
+
+  return { initialNodes, initialEdges };
 };
 
 export const getLayoutedElements = (nodes, edges, direction = 'BT') => {
@@ -129,14 +138,14 @@ export const calculateTotalMaterials = (itemName, recipeMap, amount = 1, complet
 
     const recipeObj = recipeMap.get(name);
     // If there is no recipe list, it's a base material
-    if (!recipeObj || !recipeObj.recipe) {
+    if (!recipeObj || !recipeObj.inputs) {
       totals[name] = (totals[name] || 0) + qty;
       return;
     }
     
     // Otherwise calculate ingredients
-    recipeObj.recipe.forEach(ingredient => {
-      calc(ingredient.item, ingredient.required * qty);
+    recipeObj.inputs.forEach(ingredient => {
+      calc(ingredient.item, ingredient.count * qty);
     });
   };
   

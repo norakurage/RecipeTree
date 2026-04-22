@@ -4,7 +4,7 @@ import '@xyflow/react/dist/style.css';
 import { UploadCloud, ArrowLeft, Network } from 'lucide-react';
 import CustomNode from './CustomNode';
 import SidePanel from './SidePanel';
-import { parseYamlToGraph, getLayoutedElements } from './utils';
+import { parseDataToStore, buildSubGraph, getLayoutedElements } from './utils';
 
 const nodeTypes = {
   customNode: CustomNode,
@@ -16,6 +16,10 @@ function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [recipeMap, setRecipeMap] = useState(null);
+  const [availableItems, setAvailableItems] = useState([]);
+  
+  const [searchInput, setSearchInput] = useState('');
+  const [activeRootItem, setActiveRootItem] = useState(null);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
 
   const onNodesChange = useCallback(
@@ -115,9 +119,26 @@ function App() {
     return { displayNodes: dNodes, displayEdges: dEdges };
   }, [nodes, edges, completedNodeIds]);
 
-  const loadGraph = (yamlString) => {
+  const loadGraph = (jsonString) => {
     try {
-      const { initialNodes, initialEdges, recipeMap: parsedMap } = parseYamlToGraph(yamlString);
+      const { recipeMap: parsedMap, availableItems: parsedItems } = parseDataToStore(jsonString);
+      setRecipeMap(parsedMap);
+      setAvailableItems(parsedItems);
+      setIsLoaded(true);
+    } catch (error) {
+      alert("JSONの解析に失敗しました。正しい形式ですか？\n" + error.message);
+    }
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (!searchInput || !availableItems.includes(searchInput)) {
+      alert("有効なアイテム名を入力するか、リストから選択してください。");
+      return;
+    }
+    
+    try {
+      const { initialNodes, initialEdges } = buildSubGraph(searchInput, recipeMap);
       const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
         initialNodes,
         initialEdges
@@ -125,10 +146,11 @@ function App() {
 
       setNodes(layoutedNodes);
       setEdges(layoutedEdges);
-      setRecipeMap(parsedMap);
-      setIsLoaded(true);
+      setActiveRootItem(searchInput);
+      setSelectedNodeId(null);
     } catch (error) {
-      alert("YAMLの解析に失敗しました。正しい形式ですか？\n" + error.message);
+      console.error(error);
+      alert("ツリーの構築中にエラーが発生しました。");
     }
   };
 
@@ -176,11 +198,11 @@ function App() {
           <div className="icon-container">
             <UploadCloud size={64} />
           </div>
-          <h2>recipes.yml をアップロード</h2>
+          <h2>recipes.json をアップロード</h2>
           <p>ドラッグ＆ドロップ、またはクリックしてファイルを選択</p>
           <input 
             type="file" 
-            accept=".yml,.yaml" 
+            accept=".json" 
             onChange={handleFileUpload} 
             style={{ display: 'none' }} 
           />
@@ -191,29 +213,62 @@ function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <div className="glass-panel app-header">
+      <div className="glass-panel app-header" style={{ display: 'flex', width: 'calc(100% - 48px)' }}>
         <Network size={24} color="#93C5FD" />
         <h1>Recipe Tree Explorer</h1>
-        <button className="btn" onClick={() => setIsLoaded(false)}>
-          <ArrowLeft size={16} /> 別のファイルを読み込む
+
+        <form onSubmit={handleSearch} className="search-form">
+          <input 
+            type="text" 
+            list="item-list"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="アイテム名で検索..."
+            className="search-input"
+          />
+          <datalist id="item-list">
+            {availableItems.map(item => <option key={item} value={item} />)}
+          </datalist>
+          <button type="submit" className="btn search-btn">ツリーを表示</button>
+        </form>
+
+        <button className="btn" onClick={() => { 
+          setIsLoaded(false); 
+          setActiveRootItem(null);
+          setSearchInput('');
+          setNodes([]);
+          setEdges([]);
+        }}>
+          <ArrowLeft size={16} /> 別のファイル
         </button>
       </div>
-      <ReactFlow
-        nodes={displayNodes}
-        edges={displayEdges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-        onNodeContextMenu={onNodeContextMenu}
-        onPaneClick={() => setSelectedNodeId(null)}
-        nodeTypes={nodeTypes}
-        fitView
-        minZoom={0.1}
-        colorMode="dark"
-      >
-        <Background gap={24} size={2} color="rgba(255,255,255,0.05)" />
-        <Controls showInteractive={false} />
-      </ReactFlow>
+
+      {!activeRootItem ? (
+        <div className="empty-canvas-container">
+          <div className="glass-panel empty-canvas-message">
+            <h2>アイテムを検索してください</h2>
+            <p>画面上部の検索ボックスからアイテムを選択して「ツリーを表示」をクリックすると、そのアイテムに必要な素材の構成ツリーが表示されます。</p>
+          </div>
+        </div>
+      ) : (
+        <ReactFlow
+          nodes={displayNodes}
+          edges={displayEdges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+          onNodeContextMenu={onNodeContextMenu}
+          onPaneClick={() => setSelectedNodeId(null)}
+          nodeTypes={nodeTypes}
+          fitView
+          key={activeRootItem} // Force re-render/re-fitView when root changes
+          minZoom={0.1}
+          colorMode="dark"
+        >
+          <Background gap={24} size={2} color="rgba(255,255,255,0.05)" />
+          <Controls showInteractive={false} />
+        </ReactFlow>
+      )}
       
       <SidePanel 
         selectedItem={selectedNodeId} 

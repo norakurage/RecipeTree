@@ -23,10 +23,10 @@ const SidePanel = ({ selectedItem, recipeMap, completedItems, onClose }) => {
 
               return (
                 <>
-                  {recipeObj && recipeObj.crafting && (
+                  {recipeObj && recipeObj.craft_station && (
                     <div className="crafting-info">
                       <Hammer size={16} />
-                      <span>作成施設: {recipeObj.crafting}</span>
+                      <span>作成施設: {Array.isArray(recipeObj.craft_station) ? recipeObj.craft_station.join(', ') : recipeObj.craft_station}</span>
                     </div>
                   )}
 
