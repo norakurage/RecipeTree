@@ -29,8 +29,8 @@ jobs:
           cache: 'npm'
           cache-dependency-path: './recipe-tree-app/package-lock.json' # キャッシュの場所を指定
       - name: Install dependencies
-        run: npm ci
-        working-directory: ./recipe-tree-app # ← ここでフォルダを指定！
+        run: npm install    # ← こう変更します！
+        working-directory: ./recipe-tree-app
       - name: Build
         run: npm run build
         working-directory: ./recipe-tree-app # ← ここでもフォルダを指定！
