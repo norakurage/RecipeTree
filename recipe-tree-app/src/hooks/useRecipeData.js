@@ -1,23 +1,51 @@
 import { useState, useEffect } from 'react';
 import { parseDataToStore } from '../utils';
-import recipesData from '../data/recipes.json';
+
+// サポートするゲームとそのJSONの動的インポートマップ
+const GAME_LOADERS = {
+  soulmask: () => import('../recipe/soulmask.json'),
+  satisfactory: () => import('../recipe/satisfactory.json'),
+};
 
 /**
- * 静的なレシピJSONを読み込み、recipeMapとavailableItemsを返す。
+ * 指定されたゲームのレシピJSONを動的に読み込み、recipeMapとavailableItemsを返す。
+ * @param {string} game - ゲーム識別子（'soulmask' | 'satisfactory'）
  */
-export const useRecipeData = () => {
+export const useRecipeData = (game) => {
   const [recipeMap, setRecipeMap] = useState(null);
   const [availableItems, setAvailableItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    try {
-      const { recipeMap: parsedMap, availableItems: parsedItems } = parseDataToStore(recipesData);
-      setRecipeMap(parsedMap);
-      setAvailableItems(parsedItems);
-    } catch (error) {
-      console.error('Failed to parse static recipes data:', error);
+    if (!game || !GAME_LOADERS[game]) {
+      setError(`未対応のゲーム: ${game}`);
+      setLoading(false);
+      return;
     }
-  }, []);
 
-  return { recipeMap, availableItems };
+    setLoading(true);
+    setError(null);
+    setRecipeMap(null);
+    setAvailableItems([]);
+
+    GAME_LOADERS[game]()
+      .then((module) => {
+        const data = module.default;
+        const { recipeMap: parsedMap, availableItems: parsedItems } = parseDataToStore(data);
+        setRecipeMap(parsedMap);
+        setAvailableItems(parsedItems);
+      })
+      .catch((err) => {
+        console.error('Failed to load recipe data:', err);
+        setError('レシピデータの読み込みに失敗しました。');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [game]);
+
+  return { recipeMap, availableItems, loading, error };
 };
+
+export const SUPPORTED_GAMES = Object.keys(GAME_LOADERS);

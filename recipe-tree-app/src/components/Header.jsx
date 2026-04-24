@@ -1,12 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Network } from 'lucide-react';
+import { Network, ArrowLeft, Sword, Zap } from 'lucide-react';
+
+const GAME_ICONS = {
+  soulmask: Sword,
+  satisfactory: Zap,
+};
 
 /**
  * 上部の検索フォームを表示するヘッダーコンポーネント。
  */
-const Header = ({ searchInput, setSearchInput, filteredItems, onSearch }) => {
+const Header = ({ game, gameLabel, searchInput, setSearchInput, filteredItems, onSearch, onBack }) => {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef(null);
+  const GameIcon = GAME_ICONS[game] ?? Network;
 
   // 外側クリックでドロップダウンを閉じる
   useEffect(() => {
@@ -27,9 +33,21 @@ const Header = ({ searchInput, setSearchInput, filteredItems, onSearch }) => {
 
   return (
     <div className="glass-panel app-header" style={{ display: 'flex', width: 'calc(100% - 48px)' }}>
-      <Network size={24} color="#93C5FD" />
-      <h1>Recipe Tree Explorer</h1>
+      {/* 戻るボタン */}
+      <button className="btn back-btn" onClick={onBack} title="ゲーム選択に戻る">
+        <ArrowLeft size={16} />
+        <span>戻る</span>
+      </button>
 
+      {/* ゲームアイコン＋タイトル */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8 }}>
+        <GameIcon size={20} color="#93C5FD" />
+        <h1 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
+          {gameLabel} — Recipe Tree
+        </h1>
+      </div>
+
+      {/* 検索フォーム */}
       <div ref={wrapperRef} className="search-form" style={{ position: 'relative' }}>
         <input
           type="text"
