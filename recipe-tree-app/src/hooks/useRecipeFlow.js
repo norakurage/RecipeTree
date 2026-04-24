@@ -82,6 +82,8 @@ export const useRecipeFlow = (recipeMap, availableItems) => {
 
       const ingredients = parentToIngredients[nodeId] || [];
       ingredients.forEach((ingId) => {
+        // 素材ノードが完了済みならそのエッジもフェード対象（追加しない）
+        if (completedNodeIds.has(ingId)) return;
         const eId = edgeMap[`${nodeId}->${ingId}`];
         activeEdgesSet.add(eId);
         if (!activeNodesSet.has(ingId)) {
@@ -117,13 +119,24 @@ export const useRecipeFlow = (recipeMap, availableItems) => {
   // ③ 表示用エッジの生成。同様に参照を維持する
   const displayEdges = useMemo(() => {
     return edges.map((e) => {
-      const className = activeEdges.has(e.id) ? '' : 'faded-edge';
+      const isFaded = !activeEdges.has(e.id);
+      const className = isFaded ? 'faded-edge' : '';
+
+      // labelStyle はインラインスタイルのため CSS より優先される。faded 時は明示的に上書きが必要
+      const labelStyle = isFaded
+        ? { fontSize: 16, fontWeight: 800, fill: 'rgba(148, 163, 184, 0.35)' }
+        : { fontSize: 16, fontWeight: 800, fill: '#e2e8f0' };
+      const labelBgStyle = isFaded
+        ? { fill: 'rgba(30, 41, 59, 0.25)' }
+        : { fill: '#1e293b' };
 
       if (e.className === className) return e; // 状態が変わらなければ既存の参照を返す
 
       return {
         ...e,
         className,
+        labelStyle,
+        labelBgStyle,
       };
     });
   }, [edges, activeEdges]);
