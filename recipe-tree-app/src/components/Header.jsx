@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Network, ArrowLeft } from 'lucide-react';
+import { Network } from 'lucide-react';
 
 /**
- * 上部の検索フォームと操作ボタンを表示するヘッダーコンポーネント。
+ * 上部の検索フォームを表示するヘッダーコンポーネント。
  */
-const Header = ({ searchInput, setSearchInput, filteredItems, onSearch, onClear }) => {
+const Header = ({ searchInput, setSearchInput, filteredItems, onSearch }) => {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef(null);
 
@@ -19,12 +19,6 @@ const Header = ({ searchInput, setSearchInput, filteredItems, onSearch, onClear 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setOpen(false);
-    onSearch(searchInput);
-  };
-
   const handleSelect = (item) => {
     setSearchInput(item);
     setOpen(false);
@@ -36,50 +30,34 @@ const Header = ({ searchInput, setSearchInput, filteredItems, onSearch, onClear 
       <Network size={24} color="#93C5FD" />
       <h1>Recipe Tree Explorer</h1>
 
-      <form onSubmit={handleSubmit} className="search-form" style={{ position: 'relative' }}>
-        <div ref={wrapperRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => {
-              setSearchInput(e.target.value);
-              setOpen(true);
-            }}
-            onFocus={() => setOpen(true)}
-            placeholder="アイテム名で検索..."
-            className="search-input"
-            autoComplete="off"
-          />
-          <button type="submit" className="btn search-btn">
-            ツリーを表示
-          </button>
+      <div ref={wrapperRef} className="search-form" style={{ position: 'relative' }}>
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => {
+            setSearchInput(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder="アイテム名で検索..."
+          className="search-input"
+          autoComplete="off"
+        />
 
-          {open && filteredItems.length > 0 && (
-            <ul className="suggestion-list">
-              {filteredItems.map((item) => (
-                <li
-                  key={item}
-                  className="suggestion-item"
-                  onMouseDown={() => handleSelect(item)}
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </form>
-
-      <button
-        className="btn"
-        onClick={() => {
-          onClear();
-          setSearchInput('');
-          setOpen(false);
-        }}
-      >
-        <ArrowLeft size={16} /> クリア
-      </button>
+        {open && filteredItems.length > 0 && (
+          <ul className="suggestion-list">
+            {filteredItems.map((item) => (
+              <li
+                key={item}
+                className="suggestion-item"
+                onMouseDown={() => handleSelect(item)}
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 };
