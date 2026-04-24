@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { parseDataToStore } from '../utils';
-import recipesData from '../recipes.json';
+import recipesData from '../data/recipes.json';
 
 /**
  * 静的なレシピJSONを読み込み、recipeMapとavailableItemsを返す。
