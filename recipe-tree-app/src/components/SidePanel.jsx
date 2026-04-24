@@ -1,7 +1,10 @@
 import React from 'react';
 import { X, PackageOpen, Hammer } from 'lucide-react';
-import { calculateTotalMaterials } from './utils';
+import { calculateTotalMaterials } from '../utils';
 
+/**
+ * 選択されたノードのアイテム詳細を表示するサイドパネルコンポーネント。
+ */
 const SidePanel = ({ selectedItem, recipeMap, completedItems, onClose }) => {
   return (
     <div className={`side-panel glass-panel ${selectedItem ? 'open' : ''}`}>
@@ -13,7 +16,7 @@ const SidePanel = ({ selectedItem, recipeMap, completedItems, onClose }) => {
               <X size={20} />
             </button>
           </div>
-          
+
           <div className="panel-content">
             {(() => {
               const recipeObj = recipeMap.get(selectedItem);
@@ -26,14 +29,18 @@ const SidePanel = ({ selectedItem, recipeMap, completedItems, onClose }) => {
                   {recipeObj && recipeObj.craft_station && (
                     <div className="crafting-info">
                       <Hammer size={16} />
-                      <span>作成施設: {Array.isArray(recipeObj.craft_station) ? recipeObj.craft_station.join(', ') : recipeObj.craft_station}</span>
+                      <span>
+                        作成施設:{' '}
+                        {Array.isArray(recipeObj.craft_station)
+                          ? recipeObj.craft_station.join(', ')
+                          : recipeObj.craft_station}
+                      </span>
                     </div>
                   )}
 
                   <div className="section">
                     <h3>
-                      <PackageOpen size={18} /> 
-                      必要総素材数（基礎素材まで分解）
+                      <PackageOpen size={18} /> 必要総素材数（基礎素材まで分解）
                     </h3>
                     {baseItemsKeys.length === 0 ? (
                       <p className="empty-text">すでに揃っています（または必要な素材がありません）。</p>
@@ -41,7 +48,7 @@ const SidePanel = ({ selectedItem, recipeMap, completedItems, onClose }) => {
                       <p className="empty-text">これは基礎素材です。</p>
                     ) : (
                       <ul className="materials-list">
-                        {baseItemsKeys.map(item => (
+                        {baseItemsKeys.map((item) => (
                           <li key={item}>
                             <span className="material-name">{item}</span>
                             <span className="material-qty">{totalMaterials[item]}個</span>
@@ -50,8 +57,6 @@ const SidePanel = ({ selectedItem, recipeMap, completedItems, onClose }) => {
                       </ul>
                     )}
                   </div>
-
-
                 </>
               );
             })()}

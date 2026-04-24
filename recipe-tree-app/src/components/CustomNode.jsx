@@ -1,7 +1,13 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { Hammer, Package, Check } from 'lucide-react';
+import { Hammer, Check } from 'lucide-react';
 
+/**
+ * ReactFlowのカスタムノードUI。
+ * isResult: レシピ情報があるノード（作成可能なアイテム）かどうか
+ * isCompleted: 右クリックでトグルされた完了状態
+ * isFaded: 完了状態などによりフェードアウト表示するかどうか
+ */
 const CustomNode = ({ data, isConnectable }) => {
   const isResult = data.isResult;
   const isCompleted = data.isCompleted;
@@ -16,10 +22,8 @@ const CustomNode = ({ data, isConnectable }) => {
         isConnectable={isConnectable}
         style={{ width: '8px', height: '8px', background: '#94a3b8', border: 'none' }}
       />
-      
-      <div className="node-label">
-        {data.label}
-      </div>
+
+      <div className="node-label">{data.label}</div>
 
       {isResult && data.crafting && (
         <div className="crafting-station">
@@ -33,7 +37,7 @@ const CustomNode = ({ data, isConnectable }) => {
           <Check size={32} color="#10b981" />
         </div>
       )}
-      
+
       {/* Source handle: where outputs go out (top for BT layout) */}
       <Handle
         type="source"
