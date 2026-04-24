@@ -1,13 +1,34 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Network, ArrowLeft } from 'lucide-react';
 
 /**
  * 上部の検索フォームと操作ボタンを表示するヘッダーコンポーネント。
  */
 const Header = ({ searchInput, setSearchInput, filteredItems, onSearch, onClear }) => {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef(null);
+
+  // 外側クリックでドロップダウンを閉じる
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setOpen(false);
     onSearch(searchInput);
+  };
+
+  const handleSelect = (item) => {
+    setSearchInput(item);
+    setOpen(false);
+    onSearch(item);
   };
 
   return (
@@ -15,23 +36,38 @@ const Header = ({ searchInput, setSearchInput, filteredItems, onSearch, onClear 
       <Network size={24} color="#93C5FD" />
       <h1>Recipe Tree Explorer</h1>
 
-      <form onSubmit={handleSubmit} className="search-form">
-        <input
-          type="text"
-          list="item-list"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="アイテム名で検索..."
-          className="search-input"
-        />
-        <datalist id="item-list">
-          {filteredItems.map((item) => (
-            <option key={item} value={item} />
-          ))}
-        </datalist>
-        <button type="submit" className="btn search-btn">
-          ツリーを表示
-        </button>
+      <form onSubmit={handleSubmit} className="search-form" style={{ position: 'relative' }}>
+        <div ref={wrapperRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => {
+              setSearchInput(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            placeholder="アイテム名で検索..."
+            className="search-input"
+            autoComplete="off"
+          />
+          <button type="submit" className="btn search-btn">
+            ツリーを表示
+          </button>
+
+          {open && filteredItems.length > 0 && (
+            <ul className="suggestion-list">
+              {filteredItems.map((item) => (
+                <li
+                  key={item}
+                  className="suggestion-item"
+                  onMouseDown={() => handleSelect(item)}
+                >
+                  {item}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </form>
 
       <button
@@ -39,6 +75,7 @@ const Header = ({ searchInput, setSearchInput, filteredItems, onSearch, onClear 
         onClick={() => {
           onClear();
           setSearchInput('');
+          setOpen(false);
         }}
       >
         <ArrowLeft size={16} /> クリア
