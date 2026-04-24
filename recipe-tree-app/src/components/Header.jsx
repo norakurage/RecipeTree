@@ -38,6 +38,12 @@ const Header = ({ searchInput, setSearchInput, filteredItems, onSearch }) => {
             setSearchInput(e.target.value);
             setOpen(true);
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && searchInput.trim()) {
+              setOpen(false);
+              onSearch(searchInput.trim());
+            }
+          }}
           onFocus={() => setOpen(true)}
           placeholder="アイテム名で検索..."
           className="search-input"
